@@ -2,10 +2,34 @@ const express = require('express');
 const exphbs = require('express-handlebars');
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// File to store saved places
+const SAVED_PLACES_FILE = 'saved_places.json';
+
+// Initialize saved places file if it doesn't exist
+if (!fs.existsSync(SAVED_PLACES_FILE)) {
+    fs.writeFileSync(SAVED_PLACES_FILE, JSON.stringify([]));
+}
+
+// Helper function to get saved places
+function getSavedPlaces() {
+    try {
+        const data = fs.readFileSync(SAVED_PLACES_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        return [];
+    }
+}
+
+// Helper function to save places
+function savePlaces(places) {
+    fs.writeFileSync(SAVED_PLACES_FILE, JSON.stringify(places, null, 2));
+}
 
 // Configure Handlebars
 app.engine('handlebars', exphbs.engine({
@@ -23,10 +47,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.get('/', (req, res) => {
+    const savedPlaces = getSavedPlaces();
     res.render('home', {
         title: 'Weather App',
         weather: null,
-        error: null
+        error: null,
+        savedPlaces: savedPlaces
     });
 });
 
@@ -75,10 +101,15 @@ app.post('/weather', async (req, res) => {
             })
         };
 
+        const savedPlaces = getSavedPlaces();
+        const isSaved = savedPlaces.some(place => place.city.toLowerCase() === weatherData.city.toLowerCase());
+        
         res.render('home', {
             title: 'Weather App',
             weather: weatherData,
-            error: null
+            error: null,
+            savedPlaces: savedPlaces,
+            isSaved: isSaved
         });
 
     } catch (error) {
@@ -89,6 +120,54 @@ app.post('/weather', async (req, res) => {
             error: 'City not found or API error. Please try again.'
         });
     }
+});
+
+// Route to save a place
+app.post('/save-place', (req, res) => {
+    const { city, country, temperature, description, icon } = req.body;
+    
+    if (!city) {
+        return res.status(400).json({ error: 'City is required' });
+    }
+    
+    const savedPlaces = getSavedPlaces();
+    const existingIndex = savedPlaces.findIndex(place => place.city.toLowerCase() === city.toLowerCase());
+    
+    if (existingIndex === -1) {
+        // Add new place
+        savedPlaces.push({
+            city,
+            country,
+            temperature,
+            description,
+            icon,
+            savedAt: new Date().toISOString()
+        });
+        savePlaces(savedPlaces);
+        res.json({ success: true, message: `${city} added to favorites!` });
+    } else {
+        res.json({ success: false, message: `${city} is already in favorites!` });
+    }
+});
+
+// Route to remove a place
+app.delete('/remove-place/:city', (req, res) => {
+    const { city } = req.params;
+    const savedPlaces = getSavedPlaces();
+    const filteredPlaces = savedPlaces.filter(place => place.city.toLowerCase() !== city.toLowerCase());
+    
+    if (filteredPlaces.length < savedPlaces.length) {
+        savePlaces(filteredPlaces);
+        res.json({ success: true, message: `${city} removed from favorites!` });
+    } else {
+        res.status(404).json({ error: 'City not found in favorites' });
+    }
+});
+
+// Route to get saved places
+app.get('/api/saved-places', (req, res) => {
+    const savedPlaces = getSavedPlaces();
+    res.json(savedPlaces);
 });
 
 app.get('/api/weather/:city', async (req, res) => {

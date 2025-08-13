@@ -30,10 +30,16 @@
 
     {{#if weather}}
     <div class="weather-card">
+        <!-- Weather Animation Background -->
+        <div class="weather-animation" data-weather="{{weather.description}}">
+            <div class="animation-container"></div>
+        </div>
+        
         <div class="current-datetime">
             <div class="date">{{weather.current_date}}</div>
             <div class="time">{{weather.current_time}}</div>
         </div>
+        
         <div class="weather-header">
             <div class="location">
                 <h3>{{weather.city}}, {{weather.country}}</h3>
@@ -42,6 +48,23 @@
             <div class="weather-icon">
                 <img src="http://openweathermap.org/img/wn/{{weather.icon}}@2x.png" alt="{{weather.description}}">
             </div>
+        </div>
+        
+        <!-- Save/Remove Button -->
+        <div class="save-place-section">
+            {{#if isSaved}}
+                <button class="save-btn remove-btn" data-city="{{weather.city}}" data-country="{{weather.country}}">
+                    <i class="fas fa-heart"></i>
+                    Remove from Favorites
+                </button>
+            {{else}}
+                <button class="save-btn add-btn" data-city="{{weather.city}}" data-country="{{weather.country}}" 
+                        data-temperature="{{weather.temperature}}" data-description="{{weather.description}}" 
+                        data-icon="{{weather.icon}}">
+                    <i class="far fa-heart"></i>
+                    Add to Favorites
+                </button>
+            {{/if}}
         </div>
 
         <div class="weather-main">
@@ -97,4 +120,40 @@
         </div>
     </div>
     {{/if}}
-</div> 
+    
+    <!-- Saved Places Section -->
+    {{#if savedPlaces.length}}
+    <div class="saved-places-section">
+        <h3><i class="fas fa-star"></i> Your Favorite Places</h3>
+        <div class="saved-places-grid">
+            {{#each savedPlaces}}
+            <div class="saved-place-card" data-city="{{this.city}}">
+                <div class="saved-place-header">
+                    <div class="saved-place-info">
+                        <h4>{{this.city}}, {{this.country}}</h4>
+                        <p class="saved-description">{{this.description}}</p>
+                    </div>
+                    <div class="saved-weather-icon">
+                        <img src="http://openweathermap.org/img/wn/{{this.icon}}@2x.png" alt="{{this.description}}">
+                    </div>
+                </div>
+                <div class="saved-place-temp">
+                    <span class="saved-temp-value">{{this.temperature}}°C</span>
+                </div>
+                <div class="saved-place-actions">
+                    <button class="refresh-btn" data-city="{{this.city}}">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="remove-saved-btn" data-city="{{this.city}}">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{/if}}
+</div>
+
+<!-- Notification Container -->
+<div id="notification-container"></div> 
